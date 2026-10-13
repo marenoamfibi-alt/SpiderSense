@@ -3,7 +3,8 @@ name: Build Spider Sense
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -20,21 +21,29 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: "21"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.14.3'
+          gradle-version: "8.14.3"
 
       - name: Extract source ZIP
+        shell: bash
         run: |
+          set -e
           archive=$(find . -maxdepth 1 -type f -name '*.zip' | head -n 1)
-          test -n "$archive" || (echo "Source ZIP not found"; exit 1)
+          if [ -z "$archive" ]; then
+            echo "Source ZIP not found"
+            exit 1
+          fi
           mkdir project
           unzip -q "$archive" -d project
           build_file=$(find project -name build.gradle -print -quit)
-          test -n "$build_file" || (echo "build.gradle not found"; exit 1)
+          if [ -z "$build_file" ]; then
+            echo "build.gradle not found"
+            exit 1
+          fi
           echo "PROJECT_DIR=$(dirname "$build_file")" >> "$GITHUB_ENV"
 
       - name: Build mod
@@ -46,4 +55,3 @@ jobs:
           name: SpiderSense-0.2.1-JAR
           path: project/**/build/libs/*.jar
           if-no-files-found: error
-          2

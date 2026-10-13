@@ -1,0 +1,41 @@
+name: Build Spider Sense
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.3'
+      - name: Extract source ZIP
+        run: |
+          archive=$(find . -maxdepth 1 -type f -name '*.zip' | head -n 1)
+          test -n "$archive" || (echo 'Source ZIP not found'; exit 1)
+          mkdir project
+          unzip -q "$archive" -d project
+          test -f project/build.gradle || (echo 'build.gradle not at ZIP root'; exit 1)
+      - name: Build mod
+        working-directory: project
+        run: gradle build --no-daemon
+      - name: Upload JAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpiderSense-0.2.1-JAR
+          path: project/build/libs/*.jar
+          if-no-files-found: error
